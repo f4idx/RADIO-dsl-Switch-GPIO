@@ -1,7 +1,14 @@
 #!/bin/bash
+
+# sudo apt-get install wiringpi smbclient
+
+
 diffn=start
 sleep=20 #temps de la bouche
 urlreseau='\\Nasgalere\dls\'
+
+#dossier local
+cd /home/pi/RADIO-dsl-gpio/
 
 # Config GPIO
 
@@ -16,18 +23,15 @@ sudo smbclient -N $urlreseau -c 'get flux-titre.txt'
 sudo smbclient -N $urlreseau -c 'get flux-direct.txt'
 sudo smbclient -N $urlreseau -c "get logs/$(date +%Y%m%d)-DLS.txt"
 
-# lecture valeurs GPIO
-# sudo apt-get install wiringpi
-
-# Modication fichiers
-
 read diff < flux-diff.txt
 read titre < flux-titre.txt
 read direct < flux-direct.txt
 
-var=$(gpio -g read 4)
+# Modication fichiers
 
-if [ $var = 1 ]
+gpio4=$(gpio -g read 4)
+
+if [ $gpio4 = 1 ] # 1 ou 0 selon capteurs
 then
 	diff=$titre
 	mode="TITRE"
@@ -48,7 +52,7 @@ then
 uplog=start
 echo "$(date +%H:%M) >> STARTING >> $diff" >>  logs/$(date +%Y%m%d)-DLS.txt
 else
-uplog=YES
+uplog=OUI
 echo "$(date +%H:%M) >> $diff" >>  logs/$(date +%Y%m%d)-DLS.txt
 fi
 
@@ -56,12 +60,10 @@ diffn=$diff
 
 #OUT file
 
-echo "$(date +%Y%m%d%H%M) uplog: $uplog --- Mode : $mode --- DLS: $diff"
-
+echo "$(date +%Y_%m_%d__%H:%M) uplog: $uplog --- Mode: $mode --- DLS: $diff"
 
 sudo smbclient -N $urlreseau -c 'put flux-diff.txt'
 sudo smbclient -N $urlreseau -c "put logs/$(date +%Y%m%d)-DLS.txt"
-echo done
 
 sleep $sleep
 
