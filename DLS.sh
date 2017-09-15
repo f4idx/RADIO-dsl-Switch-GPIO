@@ -1,5 +1,5 @@
 #!/bin/bash
-
+diffn=start
 sleep=20 #temps de la bouche
 urlreseau='\\Nasgalere\dls\'
 
@@ -14,9 +14,10 @@ do
 
 sudo smbclient -N $urlreseau -c 'get flux-titre.txt'
 sudo smbclient -N $urlreseau -c 'get flux-direct.txt'
+sudo smbclient -N $urlreseau -c "get logs/$(date +%Y%m%d)-DLS.txt"
 
-# lecture valeurs GPIO 
-# sudo apt-get instal wiringpi
+# lecture valeurs GPIO
+# sudo apt-get install wiringpi
 
 # Modication fichiers
 
@@ -29,18 +30,37 @@ var=$(gpio -g read 4)
 if [ $var = 1 ]
 then
 	diff=$titre
-	echo "Mode TITRE DLS: $diff"
+	mode="TITRE"
 else
 	diff=$direct
-	echo "Mode DIRECT DLS: $diff"
+	mode="DIRECT"
 fi
 
 echo "$diff" > flux-diff.txt
 
+#Logs file
+
+if [ "$diff" = "$diffn" ]
+then
+uplog=NON
+elif [ "$diffn" = "start" ]
+then
+uplog=start
+echo "$(date +%H:%M) >> STARTING >> $diff" >>  logs/$(date +%Y%m%d)-DLS.txt
+else
+uplog=YES
+echo "$(date +%H:%M) >> $diff" >>  logs/$(date +%Y%m%d)-DLS.txt
+fi
+
+diffn=$diff
+
 #OUT file
 
-sudo smbclient -N $urlreseau -c 'put flux-diff.txt'
+echo "$(date +%Y%m%d%H%M) uplog: $uplog --- Mode : $mode --- DLS: $diff"
 
+
+sudo smbclient -N $urlreseau -c 'put flux-diff.txt'
+sudo smbclient -N $urlreseau -c "put logs/$(date +%Y%m%d)-DLS.txt"
 echo done
 
 sleep $sleep
